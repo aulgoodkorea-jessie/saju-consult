@@ -17,6 +17,13 @@ const blank: BirthInput = {
   timeKnown: false,
 };
 
+const timeRequired = "출생 시각을 모르면 모름을 선택해 주세요.";
+
+function clockValue(raw: string) {
+  if (raw.trim() === "") return undefined;
+  return Number(raw);
+}
+
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return <p id={id} className="mt-1 text-sm">{message}</p>;
@@ -27,6 +34,7 @@ export function BirthForm() {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [birth, setBirth] = useState<BirthInput>(blank);
   const [step, setStep] = useState<1 | 2>(1);
+  const [timeChoice, setTimeChoice] = useState<"unset" | "unknown" | "known">("unset");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [ready, setReady] = useState(false);
@@ -38,7 +46,10 @@ export function BirthForm() {
       return;
     }
     setDraft(loaded);
-    if (loaded.birth) setBirth(loaded.birth);
+    if (loaded.birth) {
+      setBirth(loaded.birth);
+      setTimeChoice(loaded.birth.timeKnown ? "known" : "unknown");
+    }
     setReady(true);
   }, [router]);
 
@@ -54,8 +65,22 @@ export function BirthForm() {
     return rest;
   }
 
+  function goToTime() {
+    const nextErrors = dateErrors(birth);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length === 0) setStep(2);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (step === 1) {
+      goToTime();
+      return;
+    }
+    if (timeChoice === "unset") {
+      setErrors({ time: timeRequired });
+      return;
+    }
     const result = validateShape(birth);
     if (!result.ok) {
       setErrors(result.fields);
@@ -161,8 +186,11 @@ export function BirthForm() {
             <input
               type="radio"
               name="timeKnown"
-              checked={!birth.timeKnown}
-              onChange={() => patch({ timeKnown: false, hour: undefined, minute: undefined })}
+              checked={timeChoice === "unknown"}
+              onChange={() => {
+                setTimeChoice("unknown");
+                patch({ timeKnown: false, hour: undefined, minute: undefined });
+              }}
             />
             모름
           </label>
@@ -170,8 +198,11 @@ export function BirthForm() {
             <input
               type="radio"
               name="timeKnown"
-              checked={birth.timeKnown}
-              onChange={() => patch({ timeKnown: true, hour: birth.hour ?? 12, minute: birth.minute ?? 0 })}
+              checked={timeChoice === "known"}
+              onChange={() => {
+                setTimeChoice("known");
+                patch({ timeKnown: true });
+              }}
             />
             시각을 입력
           </label>
@@ -180,10 +211,11 @@ export function BirthForm() {
             <input
               className="mt-1 w-full rounded-card border border-line bg-paper px-3 py-3 disabled:bg-line"
               inputMode="numeric"
-              disabled={!birth.timeKnown}
+              disabled={timeChoice !== "known"}
               placeholder="14"
+              aria-describedby="time-error"
               value={birth.hour ?? ""}
-              onChange={(event) => patch({ hour: Number(event.target.value) })}
+              onChange={(event) => patch({ hour: clockValue(event.target.value) })}
             />
           </label>
           <label className="block">
@@ -191,10 +223,11 @@ export function BirthForm() {
             <input
               className="mt-1 w-full rounded-card border border-line bg-paper px-3 py-3 disabled:bg-line"
               inputMode="numeric"
-              disabled={!birth.timeKnown}
+              disabled={timeChoice !== "known"}
               placeholder="30"
+              aria-describedby="time-error"
               value={birth.minute ?? ""}
-              onChange={(event) => patch({ minute: Number(event.target.value) })}
+              onChange={(event) => patch({ minute: clockValue(event.target.value) })}
             />
           </label>
           <FieldError id="time-error" message={errors.time} />
@@ -209,11 +242,7 @@ export function BirthForm() {
       {step === 1 ? (
         <StickyAction
           label="시간 정보로"
-          onClick={() => {
-            const nextErrors = dateErrors(birth);
-            setErrors(nextErrors);
-            if (Object.keys(nextErrors).length === 0) setStep(2);
-          }}
+          onClick={goToTime}
         />
       ) : (
         <StickyAction label="정보 확인" type="submit" />
