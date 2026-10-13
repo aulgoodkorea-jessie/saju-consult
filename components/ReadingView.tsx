@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ProgressSteps } from "@/components/ProgressSteps";
 import { copy } from "@/lib/copy";
 import type { PresentedReading } from "@/lib/reading/present";
 
@@ -19,6 +20,12 @@ export function ReadingView({
 }) {
   const [followUp, setFollowUp] = useState("");
   const [followError, setFollowError] = useState("");
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pending) return;
+    progressRef.current?.scrollIntoView({ block: "nearest" });
+  }, [pending]);
 
   return (
     <div className="space-y-8 pt-2">
@@ -73,25 +80,33 @@ export function ReadingView({
             rows={3}
             maxLength={500}
             value={followUp}
+            disabled={pending}
             onChange={(event) => setFollowUp(event.target.value)}
           />
         </label>
         {followError ? <p>{followError}</p> : null}
-        <button
-          type="button"
-          className="min-h-12 rounded-card bg-pine px-4 font-semibold text-paper"
-          disabled={pending}
-          onClick={() => {
-            if (!followUp.trim()) {
-              setFollowError("질문을 입력해 주세요.");
-              return;
-            }
-            setFollowError("");
-            onFollowUp(followUp.trim());
-          }}
-        >
-          이어서 묻기
-        </button>
+        <div ref={progressRef} className="space-y-3">
+          {pending ? (
+            <ProgressSteps stages={copy.followUpStages} description={copy.followUpAnalyzing} />
+          ) : null}
+          <button
+            type="button"
+            className="inline-flex min-h-12 items-center rounded-card bg-pine px-4 font-semibold text-paper disabled:cursor-not-allowed disabled:bg-line disabled:text-ink"
+            disabled={pending}
+            aria-busy={pending}
+            onClick={() => {
+              if (pending) return;
+              if (!followUp.trim()) {
+                setFollowError("질문을 입력해 주세요.");
+                return;
+              }
+              setFollowError("");
+              onFollowUp(followUp.trim());
+            }}
+          >
+            {pending ? copy.followUpPending : "이어서 묻기"}
+          </button>
+        </div>
         <button type="button" className="block underline" onClick={onRestart}>
           새 상담
         </button>

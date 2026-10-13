@@ -9,6 +9,11 @@ export const copy = {
   aiError: "해석을 만들지 못했습니다. 입력은 그대로 두었으니 다시 시도해 주세요.",
   calcError: "날짜를 사주로 계산할 수 없습니다. 양력·음력과 윤달을 확인해 주세요.",
   analyzing: "사주 정보를 확인하고 해석을 작성하고 있습니다.",
+  readingStages: ["입력 확인", "사주 계산", "해석 작성", "결과 정리"],
+  followUpAnalyzing: "이전 답변을 확인하고 이어서 해석을 작성하고 있습니다.",
+  followUpStages: ["이전 답변 확인", "이어서 해석 작성"],
+  startingAnalysis: "분석을 시작하고 있습니다",
+  followUpPending: "이어서 해석하는 중",
 };
 
 export const defaultQuestions = {

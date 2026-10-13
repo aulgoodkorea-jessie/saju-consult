@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageBackdrop } from "@/components/PageBackdrop";
 import { StickyAction } from "@/components/StickyAction";
 import { copy } from "@/lib/copy";
@@ -15,6 +15,8 @@ export default function ConfirmPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [ready, setReady] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
 
   useEffect(() => {
     const loaded = loadDraft(sessionStorage);
@@ -72,8 +74,12 @@ export default function ConfirmPage() {
         <Link href="/consult" className="underline">상담 설정 수정</Link>
       </p>
       <StickyAction
-        label="분석 시작"
+        label={starting ? copy.startingAnalysis : "분석 시작"}
+        disabled={starting}
         onClick={() => {
+          if (startingRef.current) return;
+          startingRef.current = true;
+          setStarting(true);
           clearReading(sessionStorage);
           router.push("/reading");
         }}
